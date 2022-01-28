@@ -1,11 +1,23 @@
-import React, { useState } from 'react'
+import React, { useState, useEffect } from 'react'
+import personService from './services/persons'
+
+
 
 const App = () => {
   const [persons, setPersons] = useState([
-    { name: 'Arto Hellas', number: '040-123456' }
+    // { name: 'Arto Hellas', number: '040-123456' }
   ])
   const [newName, setNewName] = useState('')
   const [newNum, setNewNum] = useState('')
+
+  useEffect(() => {
+    personService
+      .getAll()
+      .then(response => {
+        setPersons(response.data)
+      })
+  }, [])
+  console.log('render', persons.length, 'notes')
 
   const handleNameChange = (event) => {
     console.log(event.target.value)
@@ -27,12 +39,27 @@ const App = () => {
       window.alert(`${newName} is already added to phonebook`)
     } else {
       setPersons(persons.concat(NameObject))
+
+      personService
+        .create(NameObject)
+        .then(response => {
+          console.log(response)
+        })
     }
 
     setNewName('')
     setNewNum('')
-    console.log(persons)
-    console.log('button clicked', event.target)
+  }
+
+  const handleDelete = (id, name) => {
+    if (window.confirm(`Delete ${name} ?`)) {
+      personService
+        .remove(id)
+        .then(response => {
+          console.log(response)
+        })
+      setPersons(persons.filter((person) => person.id !== id));
+    }
   }
 
   return (
@@ -41,30 +68,30 @@ const App = () => {
       <Form newName={newName} newNum={newNum} handleNameChange={handleNameChange}
         handleNumChange={handleNumChange} addName={addName} />
       <h2>Numbers</h2>
-      <RenderPerson persons={persons} />
+      <RenderPerson persons={persons} handleDelete={handleDelete} />
     </div>
   )
 }
 
-const Person = ({ name, num }) => {
+const Person = ({ person, handleDelete }) => {
   return (
     <div>
-      <p>{name} {num}</p>
+      <p>{person.name} {person.number}</p>
+      <button onClick={() => handleDelete(person.id, person.name)}>Delete</button>
     </div>
   )
 }
 
-const RenderPerson = ({ persons }) => {
+const RenderPerson = ({ persons, handleDelete }) => {
   return (
     <div>
       <ul>
         {persons.map(person =>
-          <Person key={person.name} name={person.name} num={person.number} />
+          <Person key={person.id} person={person} handleDelete={handleDelete} />
         )}
       </ul>
     </div>
   )
-
 }
 
 const Form = ({ newNum, newName, handleNameChange, handleNumChange, addName }) => {
